@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <style>
+        #contents {
+            z-index: 0;
+            font-size: 16px;
+        }
+
+        /* モーダル コンテンツエリア */
+        #modal-main {
+            display: none;
+            width: 500px;
+            height: 300px;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #666666;
+            position: fixed;
+            z-index: 2;
+        }
+
+        /* モーダル 背景エリア */
+        #modal-bg {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* ドロップゾーン */
+        #dropzone {
+            background-color: #cfc;
+            border: solid 3px #9c9;
+            color: #9c9;
+            min-height: 50px;
+            padding: 20px;
+            text-shadow: 1px 1px 0 #fff;
+        }
+        #dropzone.dropover {
+            background-color: #cff;
+            color: #9cc;
+        }
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+
+    <script>
+        let orderId;
+
+        function file_upload() {
+            // フォームデータを取得
+            const formdata = new FormData($('#my_form').get(0));
+
+            // POSTでアップロード
+            $.ajax({
+                url: "/upload",
+                type: "POST",
+                data: formdata,
+                cache: false,
+                contentType: false,
+                processData: false,
+                dataType: "json",
+                success: function (data) {
+                    // Success
+                    $("#response").html(JSON.stringify(data));
+                    $("#modal-response").html(JSON.stringify(data));
+                    orderId = data.id;
+                    open_modal();
+                },
+                error: function (data) {
+                    // Error
+                    $("#response").html(JSON.stringify(data));
+                }
+            })
+        }
+
+        function ok_approve() {
+            // POSTでアップロード
+            $.ajax({
+                url: "/approve",
+                type: "POST",
+                data: JSON.stringify({approve: "ok", id: orderId}),
+                cache: false,
+                contentType: "application/json",
+                processData: false,
+                dataType: "json",
+                success: function (data) {
+                    // Success
+                    $("#response").html(JSON.stringify(data));
+                },
+                error: function (data) {
+                    // Error
+                    $("#response").html(JSON.stringify(data));
+                }
+            })
+        }
+
+        function ng_approve() {
+            // POSTでアップロード
+            $.ajax({
+                url: "/approve",
+                type: "POST",
+                data: JSON.stringify({approve: "ng", id: orderId}),
+                cache: false,
+                contentType: "application/json",
+                processData: false,
+                dataType: "json",
+                success: function (data) {
+                    // Success
+                    $("#response").html(JSON.stringify(data));
+                },
+                error: function (data) {
+                    // Error
+                    $("#response").html(JSON.stringify(data));
+                }
+            })
+        }
+
+        function open_modal() {
+            //body内の最後に<div id="modal-bg"></div>を挿入
+            $("body").append('<div id="modal-bg"></div>');
+
+            //画面中央を計算する関数を実行
+            modalResize();
+
+            //モーダルウィンドウを表示
+            $("#modal-bg,#modal-main").fadeIn("slow");
+
+            //画面のどこかをクリックしたらモーダルを閉じる
+            $("#modal-bg,#modal-main").click(function () {
+                $("#modal-main,#modal-bg").fadeOut("slow", function () {
+                    //挿入した<div id="modal-bg"></div>を削除
+                    $('#modal-bg').remove();
+                });
+            });
+
+            //画面の左上からmodal-mainの横幅・高さを引き、その値を2で割ると画面中央の位置が計算できます
+            $(window).resize(modalResize);
+
+            function modalResize() {
+                const w = $(window).width();
+                const h = $(window).height();
+                const cw = $("#modal-main").outerWidth();
+                const ch = $("#modal-main").outerHeight();
+
+                const target = $("#modal-response");
+                target.attr("rows", ch / 16 - 5);
+                target.attr("cols", cw / 8 - 5);
+
+                //取得した値をcssに追加する
+                $("#modal-main").css({
+                    "left": ((w - cw) / 2) + "px",
+                    "top": ((h - ch) / 2) + "px"
+                });
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <!-- モーダル -->
+    <div id="modal-main">
+        <textarea id="modal-response" disabled></textarea>
+        <button type="button" onclick="ng_approve()">NG</button>
+        <button type="button" onclick="ok_approve()">OK</button>
+    </div>
+
+    <!-- ドロップゾーン -->
+    <div id="dropzone" effectAllowed="move">Drog files here!</div>
+
+    <!-- アップロード -->
+    <div id="contents">
+        <form id="my_form">
+            <input id="upload" type="file" name="upload">
+            <button type="button" onclick="file_upload()">アップロード</button>
+        </form>
+        <textarea id="response" cols=120 rows=10 disabled></textarea>
+    </div>
+
+    <!-- ドロップゾーンのスクリプト -->
+    <script>
+        (function() {
+            let elDrop = document.getElementById('dropzone');
+            let elInput = document.getElementById('upload');
+
+            elDrop.addEventListener('dragover', function(event) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'copy';
+                    showDropping();
+            });
+
+            elDrop.addEventListener('dragleave', function(event) {
+                    hideDropping();
+            });
+
+            elDrop.addEventListener('drop', function(event) {
+                    event.preventDefault();
+                    hideDropping();
+
+                    const files = event.dataTransfer.files;
+                    elInput.files = files;
+            });
+
+            function showDropping() {
+                    elDrop.classList.add('dropover');
+            }
+
+            function hideDropping() {
+                    elDrop.classList.remove('dropover');
+            }
+        })();
+    </script>
+</body>
+
+</html>
