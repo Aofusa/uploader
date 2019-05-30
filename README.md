@@ -10,6 +10,10 @@ index.html が表示される
 index.html はアップロードサイトのhtml  
 
 
+- $HOST/resource  
+現在のオブジェクト一覧  
+
+
 - $HOST/upload  
 アップロード先  
 ```sh
